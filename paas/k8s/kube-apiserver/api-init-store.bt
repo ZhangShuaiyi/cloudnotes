@@ -1,0 +1,20 @@
+BEGIN {
+    printf("Begin!\n");
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"*.NewRESTStorage" {
+    printf("%d %s %s\n", pid, comm, func);
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"*.NewLegacyRESTStorage" {
+    printf("%d %s %s\n", pid, comm, func);
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"*.NewREST" {
+    printf("%d %s %s\n", pid, comm, func);
+}
+
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"*.NewStorage" {
+    printf("%d %s %s\n", pid, comm, func);
+}

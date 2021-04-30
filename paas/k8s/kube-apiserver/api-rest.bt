@@ -1,0 +1,20 @@
+BEGIN {
+    printf("Begin\n");
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/endpoints.(*APIInstaller).Install" {
+    printf("%d %s %s\n", pid, comm, func);
+    printf("%s\n", ustack(perf));
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/endpoints.(*APIInstaller).registerResourceHandlers" {
+    printf("%d %s %s path:%s storage:0x%x\n", pid, comm, func, str(sarg1, sarg2), sarg3);
+}
+
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/github.com/emicklei/go-restful.(*WebService).GET" {
+//    printf("%d %s %s path:%s\n", pid, comm, func, str(sarg1, sarg2));
+//}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/github.com/emicklei/go-restful.(*WebService).Route" {
+    printf("%d %s %s w:0x%x builder[rootPath:%s currentPath:%s]\n", pid, comm, func, sarg0, str(*sarg1, *(sarg1+8)), str(*(sarg1+16), *(sarg1+24)));
+}

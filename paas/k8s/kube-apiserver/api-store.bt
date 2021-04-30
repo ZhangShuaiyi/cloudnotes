@@ -1,0 +1,41 @@
+BEGIN {
+    printf("Begin!\n");
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/cacher.(*Cacher).List" {
+    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+    if (str(sarg3, sarg4) == "/deployments/kube-system") {
+        printf("%s\n", ustack(perf));
+    }
+}
+
+uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/etcd3.(*store).List" {
+    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+    if (str(sarg3, sarg4) == "/deployments/kube-system") {
+        printf("%s\n", ustack(perf));
+    }
+}
+
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/etcd3.(*store).Watch" {
+//    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+//}
+//
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/etcd3.(*store).Get" {
+//    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+//}
+//
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/etcd3.(*store).GetToList" {
+//    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+//}
+//
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/cacher.(*Cacher).Watch" {
+//    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+//}
+//
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/cacher.(*Cacher).Get" {
+//    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+//}
+//
+//uprobe:/var/lib/docker/overlay2/*/merged/usr/local/bin/kube-apiserver:"k8s.io/kubernetes/vendor/k8s.io/apiserver/pkg/storage/cacher.(*Cacher).GetToList" {
+//    printf("%d %s %s %s\n", pid, comm, func, str(sarg3, sarg4));
+//}
