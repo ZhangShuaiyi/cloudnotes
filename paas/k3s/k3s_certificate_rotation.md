@@ -251,6 +251,54 @@ openssl s_client -CAfile ca.crt -cert admin.crt -key admin.key -connect 127.0.0.
 
 # kube-apiserver证书
 
+## K3s证书轮替问题
++ K3s 文档的建议每个月重启一次K3s服务，当证书有效期小于90天时会renew证书
++ 在边缘场景，就算K3s服务重启renew了证书，但远端使用的admin certificate有效期还是一年 [Certificate and access management for edge computing](https://github.com/k3s-io/k3s/issues/2342)
+```
+I was able to get an admin certificate valid 10 years using these commands:
+
+openssl x509 -x509toreq -in /var/lib/rancher/k3s/server/tls/client-admin.crt -out /var/lib/rancher/k3s/server/tls/client-admin.csr -signkey /var/lib/rancher/k3s/server/tls/client-admin.key
+openssl x509 -req -in /var/lib/rancher/k3s/server/tls/client-admin.csr -CA /var/lib/rancher/k3s/server/tls/client-ca.crt -CAkey /var/lib/rancher/k3s/server/tls/client-ca.key -CAcreateserial -days 3650 | base64 -w0
+cat /var/lib/rancher/k3s/server/tls/client-admin.key | base64 -w0
+cat /var/lib/rancher/k3s/server/tls/server-ca.crt | base64 -w0
+
+A CSR is extracted from the current admin certificate and used for creating a new certificate signed by the CA with a 10 years validity. Also the private key and the CA certificate for the API server are printed, these are needed for a remote connection.
+
+But I'm asking again, if a setting could exist to make all the certificates created during the installation valid for 10 years, that would be great and solved all theses certificate issues.
+```
++ 为什么证书有效期只有一年，不允许配置 [make certificate renewal/expiry configurable](https://github.com/k3s-io/k3s/issues/3253)
+```
+FWIW Kubernetes releases are only supported for 1 year, and nodes should be patched or replaced regularly within that period. It is not currently expected that nodes will be up without at least restarting services for >1 year.
+```
++ K3s证书管理介绍 [Need to document steps for manual CA certificate generation / rotation](https://github.com/rancher/rke2/issues/541)
+```
+For k3s, these commands generate certificates very close to those generated during a k3s v1.19.5+k3s1 fresh installation (using elliptic curves):
+
+openssl ecparam -name prime256v1 -genkey -noout -out client-ca.key
+openssl ecparam -name prime256v1 -genkey -noout -out server-ca.key
+openssl ecparam -name prime256v1 -genkey -noout -out request-header-ca.key
+
+openssl req -x509 -set_serial 0 -new -key client-ca.key         -sha256 -days 7305 -out client-ca.crt         -addext keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign -subj '/CN=k3s-client-ca'
+openssl req -x509 -set_serial 0 -new -key server-ca.key         -sha256 -days 7305 -out server-ca.crt         -addext keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign -subj '/CN=k3s-server-ca'
+openssl req -x509 -set_serial 0 -new -key request-header-ca.key -sha256 -days 7305 -out request-header-ca.crt -addext keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign -subj '/CN=k3s-request-header-ca'
+I have noticed two differences:
+
+For the original certificates, the CN is suffixed with a timestamp, looking like that: CN = k3s-client-ca@1608074122. Is-it important to add this timestamp? Can k3s work correctly without it?
+A small difference, openssl is adding the X509v3 extensions "Authority Key Identifier", but it must not be an issue.
+```
++ 自定义证书 [How to configure my own CA for k3s ?](https://github.com/k3s-io/k3s/issues/1868)
+```
+mkdir -p /var/lib/rancher/k3s/server/tls
+cd /var/lib/rancher/k3s/server/tls
+openssl genrsa -out client-ca.key 2048
+openssl genrsa -out server-ca.key 2048
+openssl genrsa -out request-header-ca.key 2048
+openssl req -x509 -new -nodes -key client-ca.key -sha256 -days 3560 -out client-ca.crt -addext keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign -subj '/CN=k3s-client-ca'
+openssl req -x509 -new -nodes -key server-ca.key -sha256 -days 3560 -out server-ca.crt -addext keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign -subj '/CN=k3s-server-ca'
+openssl req -x509 -new -nodes -key request-header-ca.key -sha256 -days 3560 -out request-header-ca.crt -addext keyUsage=critical,digitalSignature,keyEncipherment,keyCertSign -subj '/CN=k3s-request-header-ca'
+```
++ [CPU and memory usage of k3s](https://github.com/k3s-io/k3s/issues/2278)
+
 ## DefaultBuildHandlerChain
 在DefaultBuildHandlerChain中会初始化http.Handler，为http.Handler添加各种处理，其中包含身份验证的处理
 ```go
